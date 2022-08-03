@@ -1,0 +1,19 @@
+{
+  "main": "lib/binding.js",
+  "dependencies": {
+    "node-addon-api": "^1.7.2"
+  },
+  "scripts": {
+    "debug": "pnpm exec cmake-js rebuild -D",
+    "release": "pnpm exec cmake-js rebuild"
+  },
+  "gypfile": true,
+  "name": "discordaudio",
+  "version": "1.0.0",
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "cmake-js": "^6.3.2"
+  }
+}
