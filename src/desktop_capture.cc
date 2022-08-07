@@ -3,10 +3,24 @@
 #include "modules/desktop_capture/desktop_capture_options.h"
 #include "rtc_base/logging.h"
 #include "libyuv.h"
+#include "rtc_base/thread.h"
 
 namespace webrtc_demo
 {
-  DesktopCapture::DesktopCapture() : dc_(nullptr), start_flag_(false) {}
+
+  rtc::Thread *GlobalCapturerThread()
+  {
+    static auto result = []
+    {
+      auto thread = rtc::Thread::Create();
+      thread->SetName("WebRTC-DesktopCapturer", nullptr);
+      thread->Start();
+      return thread;
+    }();
+    return result.get();
+  };
+
+  DesktopCapture::DesktopCapture() : dc_(nullptr), _isRunning(false), _thread(GlobalCapturerThread()), delayMs_(webrtc::TimeDelta::Millis(0)) {}
 
   DesktopCapture::~DesktopCapture()
   {
@@ -41,12 +55,17 @@ namespace webrtc_demo
     opt.set_allow_pipewire(true);
     dc_ = webrtc::DesktopCapturer::CreateScreenCapturer(opt);
 
-    dc_->Start(this);
+    if (!dc_)
+    {
+      return false;
+    }
+
     dc_->SelectSource(0);
+    dc_->Start(this);
 
-    fps_ = target_fps;
+    delayMs_ = webrtc::TimeDelta::Millis(1000 / target_fps);
 
-    RTC_LOG(LS_INFO) << "Init DesktopCapture finish fps = " << fps_ << "";
+    RTC_LOG(LS_INFO) << "Init DesktopCapture finish fps = " << target_fps << "";
 
     return true;
   }
@@ -80,7 +99,6 @@ namespace webrtc_demo
     int width = frame->size().width();
     int height = frame->size().height();
 
-
     if (!i420_buffer_.get() ||
         i420_buffer_->width() * i420_buffer_->height() < width * height)
     {
@@ -100,34 +118,36 @@ namespace webrtc_demo
   void DesktopCapture::StartCapture()
   {
 
-    if (start_flag_)
+    if (_isRunning)
     {
       RTC_LOG(LS_WARNING) << "Capture already been running...";
       return;
     }
     RTC_LOG(LS_INFO) << "Starting capture...";
 
-    start_flag_ = true;
+    _isRunning = true;
 
-    // Start new thread to capture
-    capture_thread_.reset(new std::thread([this]()
-                                          {
-    while (start_flag_)
+    loop();
+  }
+
+  void DesktopCapture::loop()
+  {
+    if (!dc_ || !_isRunning)
     {
-      dc_->CaptureFrame();
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000 / fps_));
-    } }));
+      return;
+    }
+
+    dc_->CaptureFrame();
+
+    _thread->PostDelayedTask(std::move([this]()
+                                       { loop(); }),
+                             delayMs_);
   }
 
   void DesktopCapture::StopCapture()
   {
     RTC_LOG(LS_INFO) << "Stopping capture...";
-    start_flag_ = false;
-
-    if (capture_thread_ && capture_thread_->joinable())
-    {
-      capture_thread_->join();
-    }
+    _isRunning = false;
   }
 
 } // namespace webrtc_demo

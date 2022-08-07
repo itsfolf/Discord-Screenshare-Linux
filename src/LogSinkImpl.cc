@@ -3,7 +3,7 @@
 
 LogSinkImpl::LogSinkImpl(const FilePath &logPath) {
 	if (!logPath.data.empty()) {
-		_file.open(logPath.data);
+		//_file.open(logPath.data);
 	}
 }
 
