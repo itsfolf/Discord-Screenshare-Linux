@@ -20,7 +20,7 @@ class DesktopCaptureSource
   void RemoveSink(rtc::VideoSinkInterface<webrtc::VideoFrame>* sink) override;
 
  protected:
-  // Notify sinkes
+  // Notify sinks
   void OnFrame(const webrtc::VideoFrame& frame);
 
  private:

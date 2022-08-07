@@ -23,7 +23,7 @@ const keypress = async () => {
 (async () => {
     console.log("Press any key to run...");
     await keypress()
-    lib.Discordaudio();
+    lib.Init();
     //setTimeout(() => {}, 200000000);
 })()
 

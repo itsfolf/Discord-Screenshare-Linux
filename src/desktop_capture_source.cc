@@ -10,13 +10,13 @@ void DesktopCaptureSource::AddOrUpdateSink(
     rtc::VideoSinkInterface<webrtc::VideoFrame>* sink,
     const rtc::VideoSinkWants& wants) {
   broadcaster_.AddOrUpdateSink(sink, wants);
-  UpdateVideoAdapter();
+  //UpdateVideoAdapter();
 }
 
 void DesktopCaptureSource::RemoveSink(
     rtc::VideoSinkInterface<webrtc::VideoFrame>* sink) {
   broadcaster_.RemoveSink(sink);
-  UpdateVideoAdapter();
+  //UpdateVideoAdapter();
 }
 
 void DesktopCaptureSource::UpdateVideoAdapter() {
