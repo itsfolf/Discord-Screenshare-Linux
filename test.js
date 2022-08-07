@@ -3,6 +3,7 @@ try {
     lib = require('./build/Debug/discord-pawgers.node')
     console.log("Running in debug mode");
 } catch (e) {
+    console.log(e)
     lib = require('./build/Release/discord-pawgers.node')
     console.log("Running in release mode");
 }
@@ -23,6 +24,6 @@ const keypress = async () => {
     console.log("Press any key to run...");
     await keypress()
     lib.Discordaudio();
-    setTimeout(() => {}, 200000000);
+    //setTimeout(() => {}, 200000000);
 })()
 
