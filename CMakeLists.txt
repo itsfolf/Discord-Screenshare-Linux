@@ -34,6 +34,20 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${CMAKE_JS_SRC})
 # This line will give our library file a .node extension without any "lib" prefix
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
 
+if (DEFINED ENV{DEBUG_AUTO_INSTALL})
+  execute_process(COMMAND /usr/bin/logname
+                  OUTPUT_VARIABLE CURRENT_USER
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  file(GLOB DISCORD_VOICE "/home/${CURRENT_USER}/.config/discordcanary/*/modules/discord_voice/")
+  list(GET DISCORD_VOICE 0 DISCORD_VOICE)
+  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
+    COMMAND "${CMAKE_COMMAND}" -E copy
+       "$<TARGET_FILE:${PROJECT_NAME}>"
+      "${DISCORD_VOICE}" 
+       && echo "Copied to discord_voice directory."
+    COMMENT "Copying to discord_voice directory")
+endif()
+
 # Essential library files to link to a node addon,
 # you should add this line in every CMake.js based project.
 target_link_libraries(${PROJECT_NAME} ${CMAKE_JS_LIB})
@@ -60,6 +74,6 @@ add_library(libwebrtc STATIC IMPORTED)
 add_dependencies(discord-pawgers libwebrtc)
 add_library(frida-core STATIC IMPORTED)
 add_dependencies(discord-pawgers frida-core)
-target_link_directories(discord-pawgers PUBLIC "lib" PUBLIC ${GLIB_LIBRARY_DIRS})
+target_link_directories(discord-pawgers PUBLIC lib PUBLIC ${GLIB_LIBRARY_DIRS})
 find_package(X11 REQUIRED)
-target_link_libraries(discord-pawgers libwebrtc.a libfrida-core.a ${deps_LIBRARIES} ${X11_LIBRARIES} Xfixes Xrandr Xcomposite)
+target_link_libraries(discord-pawgers libwebrtc.a libfrida-core.a ${deps_LIBRARIES} ${X11_LIBRARIES} Xfixes Xrandr Xcomposite elf)
