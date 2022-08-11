@@ -6,6 +6,7 @@
 #include "api/video/i420_buffer.h"
 #include "modules/desktop_capture/desktop_capture_options.h"
 #include "rtc_base/thread.h"
+#include <glib-object.h>
 
 #include <thread>
 #include <atomic>
@@ -13,38 +14,29 @@
 namespace webrtc_demo
 {
 
-  class DesktopCapture : public DesktopCaptureSource,
-                         public webrtc::DesktopCapturer::Callback,
-                         public rtc::VideoSinkInterface<webrtc::VideoFrame>
+  class DesktopCapture : public DesktopCaptureSource
   {
   public:
-    static DesktopCapture *Create(size_t target_fps);
+    static DesktopCapture *Create(std::atomic_bool useComposer);
 
     ~DesktopCapture() override;
 
     void StartCapture(webrtc::DesktopCapturer::Callback *cb);
     void StopCapture();
+    void CaptureFrame();
 
   private:
     DesktopCapture();
 
     void Destroy();
 
-    void OnFrame(const webrtc::VideoFrame &frame) override {}
-
-    bool Init(size_t target_fps);
-
-    void OnCaptureResult(webrtc::DesktopCapturer::Result result,
-                         std::unique_ptr<webrtc::DesktopFrame> frame) override;
-
-    void loop();
-
+    bool Init(std::atomic_bool useComposer);
+  
+    GMainLoop *loop = g_main_loop_new(NULL, FALSE);
     std::unique_ptr<webrtc::DesktopCapturer> dc_;
     webrtc::DesktopCaptureOptions opt_;
     rtc::Thread *_thread;
-
-    webrtc::TimeDelta delayMs_;
-
+    
     std::atomic_bool _isRunning;
 
     rtc::scoped_refptr<webrtc::I420Buffer> i420_buffer_;

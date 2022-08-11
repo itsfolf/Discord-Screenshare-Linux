@@ -20,7 +20,8 @@ rtc::Thread *GlobalInjectorThread()
 namespace LinuxFix
 {
     static GMainLoop *loop = NULL;
-    webrtc_demo::DesktopCapture *capturer = webrtc_demo::DesktopCapture::Create(30);
+    webrtc_demo::DesktopCapture *capturer;
+    std::atomic_bool useComposer = false;
 
     void DiscordInjector::Inject(pid_t pid)
     {
@@ -64,15 +65,24 @@ namespace LinuxFix
             const gchar *op = json_object_get_string_member(cmd, "op");
             if (strcmp(op, "start_capturer") == 0)
             {
+                if (capturer)
+                    capturer->StopCapture();
+                capturer = webrtc_demo::DesktopCapture::Create(&useComposer);
                 const gchar *callbackAddrString = json_object_get_string_member(cmd, "callbackAddr");
                 intptr_t callbackAddr = strtoll(callbackAddrString, NULL, 16);
                 RTC_LOG(LS_INFO) << "callbackAddr: " << callbackAddr;
                 webrtc::DesktopCapturer::Callback *f = (webrtc::DesktopCapturer::Callback *)callbackAddr;
                 capturer->StartCapture(f);
+                useComposer = false;
             }
             else if (strcmp(op, "capture_frame") == 0)
             {
-                //RTC_LOG(LS_INFO) << "capture_frame";
+                capturer->CaptureFrame();
+            }
+            else if (strcmp(op, "start_composer") == 0)
+            {
+                RTC_LOG(LS_INFO) << "Starting composer";
+                useComposer = true;
             }
             else
             {
@@ -159,14 +169,22 @@ namespace LinuxFix
                                                       ""
                                                       "const x11CapturerStartName = '_ZN6webrtc17ScreenCapturerX115StartEPNS_15DesktopCapturer8CallbackE';"
                                                       "const x11CapturerCaptureFrameName = '_ZN6webrtc17ScreenCapturerX1112CaptureFrameEv';"
+                                                      "const cursorComposerStartName = '_ZN6webrtc24DesktopAndCursorComposer5StartEPNS_15DesktopCapturer8CallbackE';"
                                                       "const x11CapturerStartDisc = funcsDiscord.find(x => x.name == x11CapturerStartName);"
                                                       "const x11CapturerCaptureFrameDisc = funcsDiscord.find(x => x.name == x11CapturerCaptureFrameName);"
+                                                      "const cursorComposerStartDisc = funcsDiscord.find(x => x.name == cursorComposerStartName);"
                                                       "const x11CapturerStart = "
                                                       "      new NativeFunction(funcsThis.find(x => x.name == x11CapturerStartName).address, 'void', ['pointer', 'pointer']);"
                                                       ""
                                                       "Interceptor.replace(x11CapturerStartDisc.address, new NativeCallback((target, callback) => {"
                                                       "  send({op: 'start_capturer', callbackAddr: callback});"
                                                       "}, 'void', ['pointer', 'pointer']));"
+                                                      ""
+                                                      "Interceptor.attach(cursorComposerStartDisc.address, {"
+                                                      "  onEnter(args) {"
+                                                      "    send({op: 'start_composer'}); "
+                                                      "  }"
+                                                      "});"
                                                       ""
                                                       "Interceptor.replace(x11CapturerCaptureFrameDisc.address, new NativeCallback((target, opts) => {"
                                                       "  send({op: 'capture_frame'});"
