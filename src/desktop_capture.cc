@@ -1,10 +1,11 @@
 #include "desktop_capture.h"
 
 #include "modules/desktop_capture/desktop_capture_options.h"
+#include "modules/desktop_capture/desktop_and_cursor_composer.h"
 #include "rtc_base/logging.h"
 #include "libyuv.h"
 #include "rtc_base/thread.h"
-
+#include <glib-object.h>
 namespace webrtc_demo
 {
 
@@ -14,6 +15,18 @@ namespace webrtc_demo
     {
       auto thread = rtc::Thread::Create();
       thread->SetName("WebRTC-DesktopCapturer", nullptr);
+      thread->Start();
+      return thread;
+    }();
+    return result.get();
+  };
+
+  rtc::Thread *GlobalLoopThread()
+  {
+    static auto result = []
+    {
+      auto thread = rtc::Thread::Create();
+      thread->SetName("WebRTC-Loop", nullptr);
       thread->Start();
       return thread;
     }();
@@ -54,14 +67,15 @@ namespace webrtc_demo
     auto opt = webrtc::DesktopCaptureOptions::CreateDefault();
     opt.set_allow_pipewire(true);
     dc_ = webrtc::DesktopCapturer::CreateScreenCapturer(opt);
+    //dc_ = std::make_unique<webrtc::DesktopAndCursorComposer>(std::move(dc_), opt);
 
     if (!dc_)
     {
       return false;
     }
 
-    dc_->SelectSource(0);
-    dc_->Start(this);
+    //dc_->SelectSource(0);
+    //dc_->Start(this);
 
     delayMs_ = webrtc::TimeDelta::Millis(1000 / target_fps);
 
@@ -115,7 +129,7 @@ namespace webrtc_demo
         webrtc::VideoFrame(i420_buffer_, 0, 0, webrtc::kVideoRotation_0));
   }
 
-  void DesktopCapture::StartCapture()
+  void DesktopCapture::StartCapture(webrtc::DesktopCapturer::Callback *cb)
   {
 
     if (_isRunning)
@@ -124,9 +138,12 @@ namespace webrtc_demo
       return;
     }
     RTC_LOG(LS_INFO) << "Starting capture...";
-
+    dc_->Start(cb);
     _isRunning = true;
-
+    GlobalLoopThread()->PostTask([](){
+      auto loop = g_main_loop_new(NULL, FALSE);
+      g_main_loop_run(loop);
+    });
     loop();
   }
 
@@ -138,7 +155,6 @@ namespace webrtc_demo
     }
 
     dc_->CaptureFrame();
-
     _thread->PostDelayedTask(std::move([this]()
                                        { loop(); }),
                              delayMs_);

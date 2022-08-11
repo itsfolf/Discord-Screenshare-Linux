@@ -23,7 +23,8 @@ const keypress = async () => {
 (async () => {
     console.log("Press any key to run...");
     await keypress()
-    setInterval(() => lib.Init(), 1000);
+    lib.init();
+    console.log(lib.inject(884826))
     //setTimeout(() => {}, 200000000);
 })()
 

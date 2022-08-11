@@ -4,8 +4,8 @@
     "node-addon-api": "^1.7.2"
   },
   "scripts": {
-    "debug": "pnpm exec cmake-js rebuild -D",
-    "release": "pnpm exec cmake-js rebuild"
+    "debug": "npm exec cmake-js rebuild -D",
+    "release": "npm exec cmake-js rebuild"
   },
   "gypfile": true,
   "name": "discordaudio",

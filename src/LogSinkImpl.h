@@ -1,13 +1,9 @@
 #include "rtc_base/logging.h"
 #include <fstream>
 
-struct FilePath {
-	std::string data;
-};
-
 class LogSinkImpl final : public rtc::LogSink {
 public:
-	LogSinkImpl(const FilePath &logPath);
+	LogSinkImpl(const std::string &logPath);
 
 	void OnLogMessage(const std::string &msg, rtc::LoggingSeverity severity, const char *tag) override;
 	void OnLogMessage(const std::string &message, rtc::LoggingSeverity severity) override;

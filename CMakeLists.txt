@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD 17)
 # Don't add this line if you will try_compile with boost.
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+
+
 # Essential include files to build a node addon,
 # you should add this line in every CMake.js based project.
 include_directories(${CMAKE_JS_INC})
@@ -43,10 +45,12 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET glib-2.0)
 pkg_check_modules(deps REQUIRED IMPORTED_TARGET gio-2.0)
 
 target_compile_definitions(discord-pawgers PUBLIC WEBRTC_USE_X11 PUBLIC WEBRTC_USE_PIPEWIRE WEBRTC_POSIX)
-target_include_directories(${PROJECT_NAME} PRIVATE include)
+target_include_directories(${PROJECT_NAME} PRIVATE include ${deps_INCLUDE_DIRS})
 add_library(libwebrtc STATIC IMPORTED)
 add_dependencies(discord-pawgers libwebrtc)
+add_library(frida-core STATIC IMPORTED)
+add_dependencies(discord-pawgers frida-core)
 link_directories("./lib")
 LINK_DIRECTORIES(${GLIB_LIBRARY_DIRS})
 find_package(X11 REQUIRED)
-target_link_libraries(discord-pawgers ${CMAKE_SOURCE_DIR}/lib/libwebrtc.a ${deps_LIBRARIES} ${X11_LIBRARIES} Xfixes Xrandr Xcomposite)
+target_link_libraries(discord-pawgers ${CMAKE_SOURCE_DIR}/lib/libwebrtc.a ${CMAKE_SOURCE_DIR}/lib/libfrida-core.a ${deps_LIBRARIES} ${X11_LIBRARIES} Xfixes Xrandr Xcomposite)

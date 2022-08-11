@@ -22,7 +22,7 @@ namespace webrtc_demo
 
     ~DesktopCapture() override;
 
-    void StartCapture();
+    void StartCapture(webrtc::DesktopCapturer::Callback *cb);
     void StopCapture();
 
   private:
