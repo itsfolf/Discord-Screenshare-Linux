@@ -4,3 +4,4 @@ build/
 .idea
 cmake-build-debug
 linuxfix.log
+lib/libfrida-core*
