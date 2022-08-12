@@ -5,10 +5,10 @@
 #include <unistd.h>
 #include <utility>
 #include <vector>
-#include <gelf.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <gelf.h>
 
 #include "DiscordInjector.h"
 #include "desktop_capture.h"
@@ -115,35 +115,36 @@ namespace LinuxFix
     g_idle_add(stop, NULL);
   }
 
-  int retrieve_symbols(struct dl_phdr_info *info, size_t info_size,
-                       void *symbol_names_vector)
+  int module_callback(struct dl_phdr_info *info, size_t info_size,
+                      void *voice_module)
   {
-    map<string, vector<string>> *symbol_names =
-        reinterpret_cast<map<string, vector<string>> *>(symbol_names_vector);
-
-    for (size_t header_index = 0; header_index < info->dlpi_phnum;
-         header_index++)
+    DiscordVoiceModule *module = (DiscordVoiceModule *)voice_module;
+    if (strstr(info->dlpi_name, "discord_voice.node"))
     {
-      
+      module->path = info->dlpi_name;
+      size_t header_count = info->dlpi_phnum;
+      for (size_t i = 0; i < header_count; i++)
+      {
+        const ElfW(Phdr) *header = &info->dlpi_phdr[i];
+        if (header->p_type == PT_LOAD && header->p_offset == 0)
+        {
+          module->base_address = header->p_vaddr;
+          RTC_LOG(LS_VERBOSE) << "Base addr: " << header->p_vaddr;
+          return 1;
+        }
+      }
     }
 
     return 0;
   }
 
-  intptr_t translate_elf_to_active_addr(intptr_t addr)
+  bool DiscordInjector::FindFunctionPointers(DiscordVoiceModule *voice_module, map<string, intptr_t> *function_map)
   {
-    return addr; // TODO
-  }
-
-  void DiscordInjector::_Inject(pid_t pid)
-  {
-    string path = "/home/folf/.config/discordcanary/0.0.136/modules/"
-                  "discord_voice/discord_voice.node";
-    auto fd = open(path.c_str(), O_RDONLY);
+    auto fd = open(voice_module->path, O_RDONLY);
     if (fd < 0)
     {
-      RTC_LOG(LS_ERROR) << "Failed to open " << path;
-      return;
+      RTC_LOG(LS_ERROR) << "Failed to open " << voice_module->path;
+      return 0;
     }
 
     size_t file_size = lseek(fd, 0, SEEK_END);
@@ -158,12 +159,12 @@ namespace LinuxFix
 
     if (type != ET_EXEC && type != ET_DYN)
     {
-      RTC_LOG(LS_ERROR) << "Invalid ELF on " << path;
-      return;
+      RTC_LOG(LS_ERROR) << "Invalid ELF on " << voice_module->path;
+      return 0;
     }
 
     int header_count = ehdr->e_phnum;
-    Elf64_Addr preferred_address;
+    ElfW(Addr) preferred_address;
     for (int i = 0; i < header_count; i++)
     {
       GElf_Phdr phdr;
@@ -174,6 +175,7 @@ namespace LinuxFix
         break;
       }
     }
+    RTC_LOG(LS_VERBOSE) << "Preferred addr: " << preferred_address;
 
     GElf_Shdr shdr;
     Elf_Scn *scn = NULL;
@@ -202,15 +204,57 @@ namespace LinuxFix
         continue;
       details.address =
           (sym.st_value != 0)
-              ? translate_elf_to_active_addr(sym.st_value)
+              ? (voice_module->base_address + (sym.st_value - voice_module->preferred_address))
               : 0;
       details.size = sym.st_size;
       details.type = GELF_ST_TYPE(sym.st_info);
       details.bind = GELF_ST_BIND(sym.st_info);
       details.section_header_index = sym.st_shndx;
-      RTC_LOG(LS_INFO) << details.name << " " << details.type << " " << details.address;
+      if (function_map->count(details.name))
+      {
+        if (function_map->at(details.name) != 0)
+        {
+          RTC_LOG(LS_ERROR) << "Function " << details.name << " has different addresses (duplicate)";
+          return false;
+        }
+        function_map->at(details.name) = details.address;
+      }
     }
-    
+
+    for (auto it = function_map->begin(); it != function_map->end(); ++it)
+    {
+      if (it->second == 0)
+      {
+        RTC_LOG(LS_ERROR) << "Function " << it->first << " not found";
+        return false;
+      }
+    }
+    return 1;
+  }
+
+  void DiscordInjector::_Inject(pid_t pid)
+  {
+    DiscordVoiceModule voice_module;
+    dl_iterate_phdr(module_callback, &voice_module);
+    if (voice_module.path == NULL)
+    {
+      RTC_LOG(LS_ERROR) << "Could not find discord_voice module";
+      return;
+    }
+    else
+    {
+      RTC_LOG(LS_VERBOSE) << "Found discord_voice module at " << voice_module.path;
+    }
+
+    map<string, intptr_t> function_map;
+    function_map.insert(pair<string, intptr_t>("_ZN6webrtc21DesktopCaptureOptions13CreateDefaultEv", 0));
+    function_map.insert(pair<string, intptr_t>("_ZN6webrtc15DesktopCapturer20CreateScreenCapturerERKNS_21DesktopCaptureOptionsE", 0));
+
+    if (!FindFunctionPointers(&voice_module, &function_map))
+    {
+      RTC_LOG(LS_ERROR) << "Could not find function pointers";
+      return;
+    }
 
     /*FridaDeviceManager *manager;
     GError *error = NULL;
@@ -332,4 +376,5 @@ namespace LinuxFix
         g_error_free(error);
     }*/
   }
+
 }; // namespace LinuxFix
