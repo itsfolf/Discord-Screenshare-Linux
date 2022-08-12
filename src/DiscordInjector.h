@@ -3,8 +3,6 @@
 #include <link.h>
 #include <map>
 
-#include "frida-core.h"
-
 using namespace std;
 
 namespace LinuxFix
@@ -32,7 +30,7 @@ namespace LinuxFix
 
     private:
         Napi::Promise::Deferred _promise;
-        bool FindFunctionPointers(DiscordVoiceModule *voice_module, map<string, intptr_t> *function_map);
+        bool FindFunctionPointers(DiscordVoiceModule *voice_module, map<string, intptr_t> *pointer_map);
         void _Inject(pid_t pid);
     };
 

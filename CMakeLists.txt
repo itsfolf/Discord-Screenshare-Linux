@@ -16,16 +16,6 @@ include_directories(${CMAKE_JS_INC})
 # Declare the location of the source files
 file(GLOB SOURCE_FILES "src/*.cpp" "src/*.h" "src/*.cc")
 
-
-if(NOT EXISTS "${CMAKE_SOURCE_DIR}/lib/libfrida-core.a")
-    file(DOWNLOAD
-         https://github.com/frida/frida/releases/download/15.2.2/frida-core-devkit-15.2.2-linux-x86_64.tar.xz
-         ${CMAKE_SOURCE_DIR}/lib/libfrida-core.tar.xz
-         EXPECTED_HASH SHA512=8c49cc6efcb32c54fbec557d0afe8bd3dc7f120c11ff6f06a5d60a5f2bc141f25ee920d510826d428d1a7b8b03c15417ab2b66b51960b990a017f3a00a4fcfea
-         SHOW_PROGRESS)
-    execute_process(COMMAND tar -xf ${CMAKE_SOURCE_DIR}/lib/libfrida-core.tar.xz libfrida-core.a
-                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
-endif()
 # This line will tell CMake that we're building a shared library
 # from the above source files
 # named after the project's name
@@ -76,4 +66,4 @@ add_library(frida-core STATIC IMPORTED)
 add_dependencies(discord-pawgers frida-core)
 target_link_directories(discord-pawgers PUBLIC lib PUBLIC ${GLIB_LIBRARY_DIRS})
 find_package(X11 REQUIRED)
-target_link_libraries(discord-pawgers libwebrtc.a libfrida-core.a ${deps_LIBRARIES} ${X11_LIBRARIES} Xfixes Xrandr Xcomposite elf)
+target_link_libraries(discord-pawgers libwebrtc.a ${deps_LIBRARIES} ${X11_LIBRARIES} Xfixes Xrandr Xcomposite elf)

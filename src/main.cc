@@ -9,7 +9,7 @@ std::unique_ptr<LogSinkImpl> _logSink;
 
 Napi::Value Inject(const Napi::CallbackInfo &info)
 {
-  guint pid = 0;
+  int pid = 0;
   if (info.Length() > 0 && info[0].IsNumber())
   {
     pid = info[0].ToNumber().Uint32Value();
