@@ -14,6 +14,7 @@
 #include "desktop_capture.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/thread.h"
+#include "Hooker.h"
 
 using namespace std;
 
@@ -33,8 +34,18 @@ namespace LinuxFix
 {
   void DiscordInjector::Inject(pid_t pid)
   {
-    GlobalInjectorThread()->PostTask([this, pid]()
-                                     { _Inject(pid); });
+    GlobalInjectorThread()->PostTask(
+        [this, pid]()
+        {
+          try
+          {
+            _Inject(pid);
+          }
+          catch (const std::exception &e)
+          {
+            RTC_LOG(LS_ERROR) << "Failed to inject: " << e.what();
+          }
+        });
   }
 
   int FindDiscordModule(void *voice_module)
@@ -48,7 +59,6 @@ namespace LinuxFix
 
     while (fgets(buf, PATH_MAX, fd))
     {
-      RTC_LOG(LS_VERBOSE) << buf;
       n = sscanf(buf,
                  "%lx-%*lx "
                  "%*4c "
@@ -56,9 +66,8 @@ namespace LinuxFix
                  "%[^\n]",
                  &base_address,
                  path);
-      if (n == 3)
+      if (n != 2)
         continue;
-      assert(n == 4);
       if (strstr(path, "discord_voice.node"))
       {
         module->base_address = base_address;
@@ -70,8 +79,11 @@ namespace LinuxFix
     return 0;
   }
 
-  bool DiscordInjector::FindFunctionPointers(DiscordVoiceModule *voice_module, map<string, intptr_t> *pointer_map)
+  int DiscordInjector::FindFunctionPointers(DiscordVoiceModule *voice_module)
   {
+    map<string, uint64_t> *pointer_map = &voice_module->pointer_map;
+    vector<string> *requiredFunctions = Hooker::GetRequiredFunctions();
+
     auto fd = open(voice_module->path, O_RDONLY);
     if (fd < 0)
     {
@@ -96,18 +108,17 @@ namespace LinuxFix
     }
 
     int header_count = ehdr->e_phnum;
-    ElfW(Addr) preferred_address;
     for (int i = 0; i < header_count; i++)
     {
       GElf_Phdr phdr;
       gelf_getphdr(elf_data, i, &phdr);
       if (phdr.p_type == PT_LOAD && phdr.p_offset == 0)
       {
-        preferred_address = phdr.p_vaddr;
+        voice_module->preferred_address = phdr.p_vaddr;
         break;
       }
     }
-    RTC_LOG(LS_VERBOSE) << "Preferred addr: " << preferred_address;
+    RTC_LOG(LS_VERBOSE) << "Preferred addr: " << voice_module->preferred_address;
 
     GElf_Shdr shdr;
     Elf_Scn *scn = NULL;
@@ -142,26 +153,27 @@ namespace LinuxFix
       details.type = GELF_ST_TYPE(sym.st_info);
       details.bind = GELF_ST_BIND(sym.st_info);
       details.section_header_index = sym.st_shndx;
-      if (pointer_map->count(details.name))
+      if (std::find(requiredFunctions->begin(), requiredFunctions->end(), details.name) != requiredFunctions->end())
       {
-        if (pointer_map->at(details.name) != 0)
+        if (pointer_map->find(details.name) != pointer_map->end())
         {
-          RTC_LOG(LS_ERROR) << "Function " << details.name << " has different addresses (duplicate)";
-          return false;
+          RTC_LOG(LS_ERROR) << "Function " << details.name << " is not unique";
+          return -1;
         }
-        pointer_map->at(details.name) = details.address;
+        RTC_LOG(LS_VERBOSE) << "Found " << details.name << " at " << details.address;
+        pointer_map->insert(make_pair(details.name, details.address));
       }
     }
 
-    for (auto it = pointer_map->begin(); it != pointer_map->end(); ++it)
+    for (auto it = requiredFunctions->begin(); it != requiredFunctions->end(); ++it)
     {
-      if (it->second == 0)
+      if (pointer_map->find(*it) == pointer_map->end())
       {
-        RTC_LOG(LS_ERROR) << "Function " << it->first << " not found";
-        return false;
+        RTC_LOG(LS_ERROR) << "Function " << *it << " not found";
+        return -1;
       }
     }
-    return 1;
+    return 0;
   }
 
   void DiscordInjector::_Inject(pid_t pid)
@@ -174,16 +186,13 @@ namespace LinuxFix
       return;
     }
 
-    map<string, intptr_t> function_map;
-    function_map.insert(pair<string, intptr_t>("_ZN6webrtc21DesktopCaptureOptions13CreateDefaultEv", 0));
-    function_map.insert(pair<string, intptr_t>("_ZN6webrtc15DesktopCapturer20CreateScreenCapturerERKNS_21DesktopCaptureOptionsE", 0));
-
-    if (!FindFunctionPointers(&voice_module, &function_map))
+    if (FindFunctionPointers(&voice_module) != 0)
     {
       RTC_LOG(LS_ERROR) << "Could not find function pointers";
       return;
     }
-    // TODO Hooking
+
+    Hooker::Install(&voice_module);
   }
 
 }; // namespace LinuxFix

@@ -1,25 +1,27 @@
+#pragma once
+
 #include <napi.h>
 #include <unistd.h>
 #include <link.h>
 #include <map>
 
-using namespace std;
-
 namespace LinuxFix
 {
-    struct DiscordVoiceModule {
+    struct DiscordVoiceModule
+    {
         const char *path;
         ElfW(Addr) base_address;
         ElfW(Addr) preferred_address;
+        std::map<std::string, uint64_t> pointer_map;
     };
     struct ElfSymbolDetails
     {
-        const gchar *name;
+        const char *name;
         ElfW(Addr) address;
-        gsize size;
+        size_t size;
         char type;
         char bind;
-        guint16 section_header_index;
+        uint16_t section_header_index;
     };
 
     class DiscordInjector
@@ -30,7 +32,7 @@ namespace LinuxFix
 
     private:
         Napi::Promise::Deferred _promise;
-        bool FindFunctionPointers(DiscordVoiceModule *voice_module, map<string, intptr_t> *pointer_map);
+        int FindFunctionPointers(DiscordVoiceModule *voice_module);
         void _Inject(pid_t pid);
     };
 
