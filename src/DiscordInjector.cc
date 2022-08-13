@@ -10,11 +10,10 @@
 #include <sys/mman.h>
 #include <gelf.h>
 
-#include "DiscordInjector.h"
-#include "desktop_capture.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/thread.h"
 #include "Hooker.h"
+#include "DiscordInjector.h"
 
 using namespace std;
 
