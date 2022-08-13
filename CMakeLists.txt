@@ -1,69 +1,83 @@
 cmake_minimum_required(VERSION 3.4)
 
-# Name of the project (will be the name of the plugin)
-project (discord-pawgers)
+project(linux-fix)
 
 set(CMAKE_CXX_STANDARD 17)
-# Don't add this line if you will try_compile with boost.
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
-
-# Essential include files to build a node addon,
-# you should add this line in every CMake.js based project.
-include_directories(${CMAKE_JS_INC})
-
-# Declare the location of the source files
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "src/*.h" "src/*.cc")
 
-# This line will tell CMake that we're building a shared library
-# from the above source files
-# named after the project's name
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${CMAKE_JS_SRC})
 
-# This line will give our library file a .node extension without any "lib" prefix
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
 
-if (DEFINED ENV{DEBUG_AUTO_INSTALL})
-  execute_process(COMMAND /usr/bin/logname
-                  OUTPUT_VARIABLE CURRENT_USER
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
-  file(GLOB DISCORD_VOICE "/home/${CURRENT_USER}/.config/discordcanary/*/modules/discord_voice/")
+if(DEFINED ENV{DEBUG_AUTO_INSTALL})
+  execute_process(
+    COMMAND /usr/bin/logname
+    OUTPUT_VARIABLE CURRENT_USER
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  file(GLOB DISCORD_VOICE
+       "/home/${CURRENT_USER}/.config/discordcanary/*/modules/discord_voice/")
   list(GET DISCORD_VOICE 0 DISCORD_VOICE)
-  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
-    COMMAND "${CMAKE_COMMAND}" -E copy
-       "$<TARGET_FILE:${PROJECT_NAME}>"
-      "${DISCORD_VOICE}" 
-       && echo "Copied to discord_voice directory."
+  add_custom_command(
+    TARGET ${PROJECT_NAME}
+    POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy "$<TARGET_FILE:${PROJECT_NAME}>"
+            "${DISCORD_VOICE}" && echo "Copied to discord_voice directory."
     COMMENT "Copying to discord_voice directory")
 endif()
 
-# Essential library files to link to a node addon,
-# you should add this line in every CMake.js based project.
 target_link_libraries(${PROJECT_NAME} ${CMAKE_JS_LIB})
-
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_JS_INC})
 
 # Include N-API wrappers
-execute_process(COMMAND node -p "require('node-addon-api').include"
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE NODE_ADDON_API_DIR
-        )
+execute_process(
+  COMMAND node -p "require('node-addon-api').include"
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE NODE_ADDON_API_DIR)
 string(REPLACE "\n" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
 string(REPLACE "\"" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
 target_include_directories(${PROJECT_NAME} PRIVATE ${NODE_ADDON_API_DIR})
 
-add_definitions(-DNAPI_VERSION=3)
-
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(deps REQUIRED IMPORTED_TARGET glib-2.0)
-pkg_check_modules(deps REQUIRED IMPORTED_TARGET gio-2.0)
+pkg_check_modules(GLIB2 REQUIRED glib-2.0)
+pkg_check_modules(GIO REQUIRED gio-2.0)
+pkg_check_modules(ELF REQUIRED libelf)
+target_include_directories(
+  ${PROJECT_NAME} SYSTEM PRIVATE ${GIO_INCLUDE_DIRS} ${GLIB2_INCLUDE_DIRS}
+                                 ${ELF_INCLUDE_DIRS})
+target_link_libraries(
+  ${PROJECT_NAME} PRIVATE ${GIO_LINK_LIBRARIES} ${GLIB2_LINK_LIBRARIES}
+                          ${ELF_LINK_LIBRARIES})
 
-target_compile_definitions(discord-pawgers PUBLIC WEBRTC_USE_X11 PUBLIC WEBRTC_USE_PIPEWIRE WEBRTC_POSIX)
-target_include_directories(${PROJECT_NAME} PRIVATE include ${deps_INCLUDE_DIRS})
-add_library(libwebrtc STATIC IMPORTED)
-add_dependencies(discord-pawgers libwebrtc)
-add_library(frida-core STATIC IMPORTED)
-add_dependencies(discord-pawgers frida-core)
-target_link_directories(discord-pawgers PUBLIC lib PUBLIC ${GLIB_LIBRARY_DIRS})
-find_package(X11 REQUIRED)
-target_link_libraries(discord-pawgers libwebrtc.a ${deps_LIBRARIES} ${X11_LIBRARIES} Xfixes Xrandr Xcomposite elf)
+find_package(X11 REQUIRED COMPONENTS Xcomposite Xdamage Xfixes Xrender Xrandr
+                                     Xtst)
+target_include_directories(
+  ${PROJECT_NAME} SYSTEM
+  PRIVATE ${X11_X11_INCLUDE_PATH}
+          ${X11_Xlib_INCLUDE_PATH}
+          ${X11_Xcomposite_INCLUDE_PATH}
+          ${X11_Xdamage_INCLUDE_PATH}
+          ${X11_Xext_INCLUDE_PATH}
+          ${X11_Xfixes_INCLUDE_PATH}
+          ${X11_Xrender_INCLUDE_PATH}
+          ${X11_Xrandr_INCLUDE_PATH}
+          ${X11_Xtst_INCLUDE_PATH})
+target_link_libraries(
+  ${PROJECT_NAME}
+  PRIVATE ${X11_X11_LIB}
+          ${X11_Xcomposite_LIB}
+          ${X11_Xdamage_LIB}
+          ${X11_Xext_LIB}
+          ${X11_Xfixes_LIB}
+          ${X11_Xrender_LIB}
+          ${X11_Xrandr_LIB}
+          ${X11_Xtst_LIB})
+
+target_include_directories(${PROJECT_NAME} PRIVATE include)
+target_link_directories(${PROJECT_NAME} PRIVATE lib)
+target_link_libraries(${PROJECT_NAME} PRIVATE libwebrtc.a)
+
+target_compile_definitions(
+  ${PROJECT_NAME} PUBLIC NAPI_VERSION=3 WEBRTC_USE_X11 WEBRTC_USE_PIPEWIRE
+                         WEBRTC_POSIX)
