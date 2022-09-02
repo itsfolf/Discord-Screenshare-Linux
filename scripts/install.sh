@@ -1,6 +1,6 @@
 #!/bin/sh
 username=$(logname)
-dirs=(/home/$username/.config/discord*/*/modules/discord_voice /home/pink/.var/app/com.discordapp.*/config/discord/*/modules/discord_voice)
+dirs=(/home/$username/.config/discord*/*/modules/discord_voice /home/$username/.var/app/com.discordapp.*/config/discord/*/modules/discord_voice)
 len=${#dirs[@]}
 
 if [[ $len -eq 0 ]]; then
