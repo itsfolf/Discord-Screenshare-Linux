@@ -1,6 +1,6 @@
 #!/bin/sh
 username=$(logname)
-dirs=(/home/$username/.config/discord*/*/modules/discord_voice)
+dirs=(/home/$username/.config/discord*/*/modules/discord_voice /home/pink/.var/app/com.discordapp.*/config/discord/*/modules/discord_voice)
 len=${#dirs[@]}
 
 if [[ $len -eq 0 ]]; then
@@ -12,9 +12,10 @@ if [[ $len -gt 1 ]]; then
     echo "Multiple Discord installations found"
     echo "Please select one:"
     for i in "${!dirs[@]}"; do
-        echo -n "$((i+1)) "
-        echo "${dirs[$i]}" | cut --delimiter='/' --fields=5
+        echo -n "$((i+1)): "
+        echo "${dirs[$i]}"
     done
+
     read -p "Enter selection: " selection
     selectedIndex=$((selection-1))
     selected=${dirs[$selectedIndex]}
