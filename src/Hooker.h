@@ -4,8 +4,10 @@
 #include "modules/desktop_capture/desktop_capture_options.h"
 #include "modules/desktop_capture/mouse_cursor_monitor.h"
 #include "modules/desktop_capture/desktop_and_cursor_composer.h"
+#include "api/video_codecs/video_encoder_factory.h"
+#include "api/video_codecs/sdp_video_format.h"
 #include "rtc_base/thread.h"
-
+#include "utils/h264_encoder_impl.h"
 namespace LinuxFix
 {
     class Hooker
@@ -29,5 +31,6 @@ namespace LinuxFix
         std::unique_ptr<webrtc::DesktopCapturer> CreateScreenCapturerHk(webrtc::DesktopCaptureOptions options);
         std::unique_ptr<webrtc::DesktopCapturer> CreateWindowCapturerHk(webrtc::DesktopCaptureOptions options);
         std::unique_ptr<webrtc::MouseCursorMonitor> CreateMouseCursorMonitorHk(webrtc::DesktopCaptureOptions options);
+        int InitEncodeHk(const webrtc::VideoCodec *codec_settings, const webrtc::VideoEncoder::Settings &encoder_settings);
     }
 }

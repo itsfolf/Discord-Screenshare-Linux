@@ -2,6 +2,7 @@
 #include "Hook.h"
 #include "Hooker.h"
 #include "utils/threads.h"
+#include "utils/CustomEncoderFactory.h"
 
 using namespace std;
 using namespace webrtc;
@@ -27,6 +28,9 @@ namespace LinuxFix
         {"_ZN7discord5media17ScreenshareHelper14GetSourceCountENS_19DesktopCapturerTypeE", [](void *funcPtr)
          {
              return CreateHook((void *)funcPtr, (void *)GetSourceCount);
+         }},
+        {"_ZN6webrtc15H264EncoderImpl10InitEncodeEPKNS_10VideoCodecERKNS_12VideoEncoder8SettingsE", [](void *funcPtr) {
+            return CreateHook((void *)funcPtr, (void *)InitEncodeHk);
          }}};
 
     vector<string> *Hooker::GetRequiredFunctions()
@@ -57,6 +61,7 @@ namespace LinuxFix
 
     namespace
     {
+        unique_ptr<H264Encoder> encoder = H264EncoderImpl::Create();
         void CreateDefaultOptionsHk()
         {
             hookCtx->options = DesktopCaptureOptions::CreateDefault();
@@ -94,5 +99,12 @@ namespace LinuxFix
         {
             return MouseCursorMonitor::Create(hookCtx->options);
         }
+
+        int InitEncodeHk(const webrtc::VideoCodec *codec_settings, const webrtc::VideoEncoder::Settings &encoder_settings)
+        {
+            RTC_LOG(LS_INFO) << "InitEncodeHk";
+            return encoder->InitEncode(codec_settings, encoder_settings);
+        }
+
     }
 }
