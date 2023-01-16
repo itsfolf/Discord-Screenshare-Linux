@@ -13,4 +13,16 @@ namespace LinuxFix
         }();
         return result.get();
     };
+
+    rtc::Thread *GlobalCaptureThread()
+    {
+        static auto result = []
+        {
+            auto thread = rtc::Thread::Create();
+            thread->SetName("WebRTC-AudioCapturer", nullptr);
+            thread->Start();
+            return thread;
+        }();
+        return result.get();
+    };
 }

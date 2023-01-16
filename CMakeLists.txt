@@ -4,6 +4,7 @@ project(linux-fix)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "src/*.h" "src/*.cc")
 
@@ -77,6 +78,10 @@ target_link_libraries(
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 target_link_directories(${PROJECT_NAME} PRIVATE lib)
 target_link_libraries(${PROJECT_NAME} PRIVATE libwebrtc.a)
+
+find_package(PipeWire REQUIRED)
+target_include_directories(${PROJECT_NAME} PUBLIC ${PIPEWIRE_INCLUDE_DIRS} ${SPA_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${PIPEWIRE_LIBRARIES})
 
 target_compile_definitions(
   ${PROJECT_NAME} PUBLIC NAPI_VERSION=3 WEBRTC_USE_X11 WEBRTC_USE_PIPEWIRE

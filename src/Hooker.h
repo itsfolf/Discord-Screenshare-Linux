@@ -29,5 +29,6 @@ namespace LinuxFix
         std::unique_ptr<webrtc::DesktopCapturer> CreateScreenCapturerHk(webrtc::DesktopCaptureOptions options);
         std::unique_ptr<webrtc::DesktopCapturer> CreateWindowCapturerHk(webrtc::DesktopCaptureOptions options);
         std::unique_ptr<webrtc::MouseCursorMonitor> CreateMouseCursorMonitorHk(webrtc::DesktopCaptureOptions options);
+        void UninitializePipewireHk();
     }
 }

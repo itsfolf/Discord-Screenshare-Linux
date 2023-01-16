@@ -1,4 +1,5 @@
 // ==Discord Screenshare Linux Fix==
+features.declareSupported('soundshare');
 try {
     const lib = require('./linux-fix.node');
     lib.init(dataDirectory);

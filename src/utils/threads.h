@@ -5,4 +5,5 @@
 namespace LinuxFix
 {
     rtc::Thread *GlobalLoopThread();
+    rtc::Thread *GlobalCaptureThread();
 }

@@ -2,6 +2,7 @@
 #include "Hook.h"
 #include "Hooker.h"
 #include "utils/threads.h"
+#include "AudioDevice.h"
 
 using namespace std;
 using namespace webrtc;
@@ -27,6 +28,26 @@ namespace LinuxFix
         {"_ZN7discord5media17ScreenshareHelper14GetSourceCountENS_19DesktopCapturerTypeE", [](void *funcPtr)
          {
              return CreateHook((void *)funcPtr, (void *)GetSourceCount);
+         }},
+         {"_ZN7discord5media10soundshare11AudioDevice17SetAudioTransportEPNS0_20EngineAudioTransportE", [](void *funcPtr)
+         {
+             return CreateHook((void *)funcPtr, (void *)(AudioDeviceBridge::SetAudioTransport));
+         }},
+         {"_ZN7discord5media10soundshare11AudioDevice6AttachEj", [](void *funcPtr)
+         {
+             return CreateHook((void *)funcPtr, (void *)(AudioDeviceBridge::Attach));
+         }},
+         {"_ZN7discord5media10soundshare11AudioDevice6DetachEv", [](void *funcPtr)
+         {
+             return CreateHook((void *)funcPtr, (void *)(AudioDeviceBridge::Detach));
+         }},
+         {"_ZN7discord5media10soundshare11AudioDevice10IsSpeakingEv", [](void *funcPtr)
+         {
+             return CreateHook((void *)funcPtr, (void *)(AudioDeviceBridge::IsSpeaking));
+         }},
+         {"_ZN7discord5media20EngineAudioTransport23RecordedDataIsAvailableENS0_15AudioStreamTypeEPKvmmmjjijbRj", [](void *funcPtr) {
+             AudioDeviceBridge::RecordedDataIsAvailable = (uint (*)(void*, int, void*, int64_t, int64_t, int64_t, uint, uint, int, uint, bool))funcPtr;
+             return 0;
          }}};
 
     vector<string> *Hooker::GetRequiredFunctions()
@@ -93,6 +114,10 @@ namespace LinuxFix
         unique_ptr<MouseCursorMonitor> CreateMouseCursorMonitorHk(DesktopCaptureOptions options)
         {
             return MouseCursorMonitor::Create(hookCtx->options);
+        }
+
+        void UninitializePipewireHk() {
+            // cease
         }
     }
 }
