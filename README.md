@@ -11,6 +11,8 @@ sh -c "$(curl https://raw.githubusercontent.com/fuwwy/Discord-Screenshare-Linux/
 ```
 After installing restart discord, if it was running
 
+**Note: the screen preview inside the screenshare popup will still be black, just click on one of them to trigger screensharing anyway.**
+
 ## Dependencies
 
 Pipewire, Pipewire-pulse, Discord
