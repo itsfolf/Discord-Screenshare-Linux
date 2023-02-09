@@ -14,5 +14,7 @@ After installing restart discord, if it was running
 **Note: the screen preview inside the screenshare popup will still be black, just click on one of them to trigger screensharing anyway.**
 
 ## Dependencies
-
-Pipewire, Pipewire-pulse, Discord
+```
+pipewire pipewire-pulse discord xdg-desktop-portal xdg-desktop-portal-{insert desktop environment here} 
+(ex. kde needs xdg-desktop-portal-kde, gnome needs xdg-desktop-portal-gnome)
+```
