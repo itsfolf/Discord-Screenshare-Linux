@@ -16,5 +16,5 @@ After installing restart discord, if it was running
 ## Dependencies
 ```
 pipewire pipewire-pulse discord xdg-desktop-portal xdg-desktop-portal-{insert desktop environment here} 
-(ex. kde needs xdg-desktop-portal-kde, gnome needs xdg-desktop-portal-gnome)
+(ex. kde needs xdg-desktop-portal-kde, gnome needs xdg-desktop-portal-gnome, for wlroots based compositors xdg-desktop-portal-wlr)
 ```
