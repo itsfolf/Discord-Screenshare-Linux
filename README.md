@@ -7,7 +7,7 @@ WIP repo that adds Discord screenshare support for Wayland and Pipewire aswell a
 
 ## Install
 ```
-bash -c "$(curl https://raw.githubusercontent.com/fuwwy/Discord-Screenshare-Linux/main/scripts/install.sh -sSfL)"
+bash -c "$(curl https://raw.githubusercontent.com/itsfolf/Discord-Screenshare-Linux/main/scripts/install.sh -sSfL)"
 ```
 After installing restart discord, if it was running
 
