@@ -38,9 +38,9 @@ separator="\/\/ ==Discord Screenshare Linux Fix=="
 sed -i.bak '/^'"$separator"'/,/^'"$separator"'/{/^#/!{/^\$/!d}}' $selected/index.js
 
 #Download latest
-downloadUrl=$(wget -qO- https://api.github.com/repos/fuwwy/Discord-Screenshare-Linux/releases/latest | grep browser_download_url | cut -d '"' -f 4)
+downloadUrl=$(wget -qO- https://api.github.com/repos/itsfolf/Discord-Screenshare-Linux/releases/latest | grep browser_download_url | cut -d '"' -f 4)
 wget -O $selected/linux-fix.node -q --show-progress "$downloadUrl"
-code=$(wget -qO- https://raw.githubusercontent.com/fuwwy/Discord-Screenshare-Linux/main/scripts/patch.js)
+code=$(wget -qO- https://raw.githubusercontent.com/itsfolf/Discord-Screenshare-Linux/main/scripts/patch.js)
 
 #echo -e "\n" >> $selected/index.js
 echo "$code" >> $selected/index.js
